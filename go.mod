@@ -1,0 +1,17 @@
+module github.com/Fyve-Labs/tessa-daemon
+
+go 1.25.1
+
+require github.com/jpillora/chisel v1.11.3
+
+require (
+	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/jpillora/backoff v1.0.0 // indirect
+	github.com/jpillora/sizestr v1.0.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+)

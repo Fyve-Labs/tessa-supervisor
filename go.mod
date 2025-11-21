@@ -2,7 +2,12 @@ module github.com/Fyve-Labs/tessa-daemon
 
 go 1.25.1
 
-require github.com/jpillora/chisel v1.11.3
+require (
+	github.com/creack/pty v1.1.24
+	github.com/jpillora/chisel v1.11.3
+	github.com/nats-io/nats.go v1.47.0
+	golang.org/x/crypto v0.41.0
+)
 
 require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 // indirect
@@ -10,7 +15,9 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/jpillora/sizestr v1.0.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/nats-io/nkeys v0.4.11 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect

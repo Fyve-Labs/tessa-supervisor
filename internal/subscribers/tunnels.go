@@ -10,18 +10,9 @@ import (
 // registerTunnels wires subscribers for tunnel notification topics.
 func registerTunnels(st *starter) {
 	st.On("$aws/things/tunnels/notify", func(m pubsub.Message) {
-		if m.IoTThingName != "" {
-			st.logger.Printf("[$aws/things/tunnels/notify] thing=%s AWS IoT tunnel notification: %s", m.IoTThingName, string(m.Data))
-		} else {
-			st.logger.Printf("[$aws/things/tunnels/notify] AWS IoT tunnel notification: %s", string(m.Data))
-		}
+		st.logger.Printf("[$aws/things/tunnels/notify] thing=%s AWS IoT tunnel notification: %s", m.IoTThingName, string(m.Data))
 	})
 	st.On("tessa/things/tunnels/notify", func(m pubsub.Message) {
-		// Expected payload structure:
-		// {
-		//   "server": "tunnel server address: https://192.168.1.9:8080",
-		//   "tunnel_port": "Free port that server assigned to this device for SSH tunneling: example 2222",
-		// }
 		var payload struct {
 			Server     string `json:"server"`
 			ServerPort int    `json:"server_port"`

@@ -1,6 +1,6 @@
 package main
 
-// tessad: Tessa daemon CLI
+// iot-core-webhook
 //
 // This is a minimal, self-contained daemon that:
 // - Starts an HTTP API server on :7979

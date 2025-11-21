@@ -14,21 +14,27 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func handleConnection(conn net.Conn, config *ssh.ServerConfig, sm *sessionManager) {
-	sshConn, chans, reqs, err := ssh.NewServerConn(conn, config)
+func handleConnection(conn net.Conn, c *sshServerController) {
+	sshConn, chans, reqs, err := ssh.NewServerConn(conn, c.config)
 	if err != nil {
 		log.Printf("Failed to handshake for %s: %v", conn.RemoteAddr(), err)
+		// Decrement on handshake failure!
+		c.wg.Done()
 		return
 	}
+
 	log.Printf("New SSH connection from %s (%s)", sshConn.RemoteAddr(), sshConn.ClientVersion())
-	sm.Add(sshConn)
+	c.sm.Add(sshConn)
 
 	var once sync.Once
 	cleanup := func() {
-		sm.Remove(sshConn)
+		c.sm.Remove(sshConn)
 		log.Printf("Cleaned up session for %s", sshConn.RemoteAddr())
+		c.wg.Done()
 	}
-	defer once.Do(cleanup) // Fallback cleanup if the loop exits unexpectedly
+
+	// Fallback cleanup if the loop exits unexpectedly
+	defer once.Do(cleanup)
 
 	go ssh.DiscardRequests(reqs)
 
@@ -44,7 +50,7 @@ func handleConnection(conn net.Conn, config *ssh.ServerConfig, sm *sessionManage
 		}
 
 		// Associate the channel with the session for broadcasting
-		sm.SetChannel(sshConn, channel)
+		c.sm.SetChannel(sshConn, channel)
 
 		go func(in <-chan *ssh.Request) {
 			var ptmx *os.File // Declare ptmx here to be accessible by window-change

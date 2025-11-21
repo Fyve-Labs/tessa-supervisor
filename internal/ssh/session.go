@@ -49,29 +49,33 @@ func (sm *sessionManager) Remove(conn ssh.Conn) {
 	delete(sm.sessions, conn.RemoteAddr().String())
 }
 
-// Broadcast a message to all active PTY sessions and then close them.
 func (sm *sessionManager) BroadcastAndClose(message string, gracePeriod time.Duration) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	// Announce to all sessions with an active channel
-	for _, s := range sm.sessions {
-		if s.channel != nil {
-			fmt.Fprintf(s.channel.Stderr(), "\r\n\n%s\r\n", message)
+	activeSessions := len(sm.sessions)
+	if activeSessions > 0 {
+		log.Printf("Announcing shutdown to %d active session(s)...", activeSessions)
+		for _, s := range sm.sessions {
+			if s.channel != nil {
+				fmt.Fprintf(s.channel.Stderr(), "\r\n\n%s\r\n", message)
+			}
 		}
 	}
 
 	// Wait for the grace period if there are any active sessions
-	if len(sm.sessions) > 0 && gracePeriod > 0 {
+	if gracePeriod > 0 {
 		log.Printf("Waiting for grace period: %s", gracePeriod)
 		time.Sleep(gracePeriod)
 	}
 
 	// Close all connections
-	log.Println("Closing all active connections...")
-	for addr, s := range sm.sessions {
-		if err := s.conn.Close(); err != nil {
-			log.Printf("Failed to close connection for %s: %v", addr, err)
+	if activeSessions > 0 {
+		log.Println("Closing all active connections...")
+		for addr, s := range sm.sessions {
+			if err := s.conn.Close(); err != nil {
+				log.Printf("Failed to close connection for %s: %v", addr, err)
+			}
 		}
 	}
 }

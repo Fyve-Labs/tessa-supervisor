@@ -41,32 +41,37 @@ func (cmd *Command) Start() {
 	}
 
 	if cmd.ID == StartSSHCommand {
-		h, err := handler.NewSSHServerHandler(cmd.Payload)
-		if err != nil {
-			slog.Error(err.Error())
-			return
-		}
-		cmd.handler = h
+		cmd.startSSHServer()
 	}
 
-	if cmd.handler == nil {
+	for {
+		select {
+		case <-cmd.ctx.Done():
+			cmd.Stop()
+			return
+		}
+	}
+}
+
+func (cmd *Command) startSSHServer() {
+	if cmd.handler != nil {
 		return
 	}
 
+	h, err := handler.NewSSHServerHandler(cmd.Payload)
+	if err != nil {
+		slog.Error(fmt.Sprintf("new SSH server: %v", err), slog.String("command", cmd.ID))
+		return
+	}
+	cmd.handler = h
+
 	go func() {
-		cmd.manager.tunnelManager.ProxySSH("127.0.0.1", 2222)
-		for {
-			select {
-			case <-cmd.ctx.Done():
-				cmd.Stop()
-				return
-			}
+		if err := cmd.handler.Handle(cmd.ctx); err != nil {
+			slog.Error(fmt.Sprintf("start ssh server: %v", err), slog.String("command", cmd.ID))
 		}
 	}()
 
-	if err := cmd.handler.Handle(cmd.ctx); err != nil {
-		slog.Error(fmt.Sprintf("Failed to start command handler server: %v", err), slog.String("command", cmd.ID))
-	}
+	cmd.manager.tunnelManager.ProxySSH("127.0.0.1", h.ListenPort())
 }
 
 func (cmd *Command) Stop() {
@@ -74,9 +79,12 @@ func (cmd *Command) Stop() {
 		if err := cmd.handler.Stop(); err != nil {
 			slog.Error(fmt.Sprintf("Failed to stop command hanler: %v", err), slog.String("command", cmd.ID))
 		}
+
+		if h, ok := cmd.handler.(*handler.SSHServerHandler); ok {
+			cmd.manager.tunnelManager.UnProxy("127.0.0.1", h.ListenPort())
+		}
 	}
 
 	cmd.handler = nil
-	cmd.manager.tunnelManager.UnProxy("127.0.0.1", 2222)
 	cmd.cancel()
 }

@@ -25,11 +25,11 @@ type SSHServerConfig struct {
 }
 
 type SSHServerHandler struct {
-	Listen         string
 	UserPublicKey  gossh.PublicKey
 	HostPrivateKey gossh.Signer
 
-	server *ssh.Server
+	listener net.Listener
+	server   *ssh.Server
 }
 
 func NewSSHServerHandler(payload interface{}) (*SSHServerHandler, error) {
@@ -47,26 +47,29 @@ func NewSSHServerHandler(payload interface{}) (*SSHServerHandler, error) {
 		return nil, fmt.Errorf("failed to parse host private key: %w", err)
 	}
 
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
+	}
+
 	return &SSHServerHandler{
 		UserPublicKey:  caPublicKey,
 		HostPrivateKey: private,
+		listener:       ln,
 	}, nil
 }
 
-func (h *SSHServerHandler) Handle(ctx context.Context) error {
-	slog.Info("Starting SSH server")
+func (h *SSHServerHandler) ListenPort() int {
+	addr := h.listener.Addr().(*net.TCPAddr)
+	return addr.Port
+}
 
-	// start listening on the address
-	ln, err := net.Listen("tcp", ":2222")
-	if err != nil {
-		return err
-	}
-	defer ln.Close()
+func (h *SSHServerHandler) Handle(ctx context.Context) error {
+	slog.Info("Starting SSH server", slog.String("addr", fmt.Sprintf("127.0.0.1:%d", h.ListenPort())))
 
 	config := &gossh.ServerConfig{
 		ServerVersion: fmt.Sprintf("SSH-2.0-%s_%s", "Tessa", "TODO: version"),
 	}
-
 	config.AddHostKey(h.HostPrivateKey)
 
 	certChecker := &UserCertChecker{
@@ -83,12 +86,11 @@ func (h *SSHServerHandler) Handle(ctx context.Context) error {
 		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
 			return config
 		},
-		// check public key(s)
 		PublicKeyHandler: func(ctx ssh.Context, pubKey ssh.PublicKey) bool {
 			remoteAddr := ctx.RemoteAddr()
 			permissions, err := certChecker.Authenticate(ctx.User(), pubKey)
 			if err != nil {
-				//slog.Warn(err.Error(), "addr", remoteAddr)
+				slog.Warn(err.Error(), "addr", remoteAddr)
 				return false
 			}
 
@@ -101,12 +103,14 @@ func (h *SSHServerHandler) Handle(ctx context.Context) error {
 		IdleTimeout: 3600 * time.Second,
 	}
 
-	return h.server.Serve(ln)
+	return h.server.Serve(h.listener)
 }
 
 func (h *SSHServerHandler) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+	_ = h.listener.Close()
+	h.listener = nil
 	return h.server.Shutdown(ctx)
 }
 

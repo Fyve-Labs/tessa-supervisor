@@ -2,130 +2,104 @@ package tunnel
 
 import (
 	"context"
-	"errors"
-	"log"
-	"slices"
-	"sync"
+	"fmt"
+	"log/slog"
+	"net"
 
-	chclient "github.com/jpillora/chisel/client"
+	"github.com/Fyve-Labs/tessa-daemon/internal/config"
+	"github.com/fatedier/frp/client"
+	v1 "github.com/fatedier/frp/pkg/config/v1"
+	"github.com/pocketbase/pocketbase/tools/store"
 )
 
-// Manager coordinates the lifecycle of a tunnel client configuration.
-// It can only start when server, remotes and TLS are configured.
 type Manager struct {
-	server  string
-	remotes []string
-	tls     chclient.TLSConfig
-
-	// flags to confirm explicit configuration
-	setTLS bool
-
-	// runtime
-	mu      sync.Mutex
-	client  *chclient.Client
-	started bool
-	ctx     context.Context
-	runCtx  context.Context
-	cancel  context.CancelFunc
-	logger  *log.Logger
+	deviceName string
+	frpc       *client.Service
+	proxyCfgs  *store.Store[string, v1.ProxyConfigurer]
+	cancel     context.CancelFunc
 }
 
-func NewManager(ctx context.Context, logger *log.Logger) *Manager {
-	return &Manager{
-		ctx:    ctx,
-		logger: logger,
-	}
-}
-
-// Ready reports whether the manager has sufficient configuration to start.
-func (m *Manager) Ready() bool {
-	return m.server != "" && len(m.remotes) > 0 && m.setTLS
-}
-
-// SetServer sets the tunnel server address.
-func (m *Manager) SetServer(server string) {
-	if server != m.server {
-		m.server = server
-	}
-}
-
-func (m *Manager) SetRemotes(remotes []string) {
-	m.remotes = append([]string(nil), remotes...)
-}
-
-// AddRemote appends a remote and restarts if running.
-func (m *Manager) AddRemote(remote string) {
-	if slices.Contains(m.remotes, remote) {
-		return
-	}
-
-	m.remotes = append(m.remotes, remote)
-}
-
-// SetTLS configures TLS.
-func (m *Manager) SetTLS(tls chclient.TLSConfig) {
-	m.tls = tls
-	m.setTLS = true
-}
-
-func (m *Manager) Start() error {
-	if m.started {
-		return nil
-	}
-
-	if !m.Ready() {
-		return errors.New("tunnel manager not ready")
-	}
-
-	m.logger.Printf("Starting tunnel client")
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// derive a cancelable context for this run and snapshot config
-	runCtx, cancel := context.WithCancel(m.ctx)
-	server := m.server
-	remotes := append([]string(nil), m.remotes...)
-	tls := m.tls
-	m.runCtx = runCtx
-	m.cancel = cancel
-	m.started = true
-
-	// start the tunnel client and does not block
-	c, err := Start(runCtx, &Config{Server: server, Remotes: remotes, TLS: tls})
+func NewManager(deviceName string, conf *config.TunnelConfig) (*Manager, error) {
+	frpc, err := NewService(conf)
 	if err != nil {
-		m.started = false
-		return err
+		return nil, err
 	}
 
-	m.client = c
-
-	return nil
+	return &Manager{
+		deviceName: deviceName,
+		frpc:       frpc,
+		proxyCfgs:  store.New(map[string]v1.ProxyConfigurer{}),
+	}, nil
 }
 
-func (m *Manager) Stop() error {
-	if !m.started {
+func (m *Manager) ProxySSH(IP string, port int) {
+	proxyCfg := &v1.TCPMuxProxyConfig{
+		ProxyBaseConfig: v1.ProxyBaseConfig{
+			Type: "tcpmux",
+			Name: m.deviceName,
+			ProxyBackend: v1.ProxyBackend{
+				LocalIP:   IP,
+				LocalPort: port,
+			},
+		},
+		DomainConfig: v1.DomainConfig{
+			CustomDomains: []string{m.deviceName},
+		},
+		Multiplexer: "httpconnect",
+	}
+
+	m.proxyCfgs.Set(net.JoinHostPort(IP, fmt.Sprintf("%d", port)), proxyCfg)
+	if err := m.update(); err != nil {
+		slog.Warn(err.Error())
+	}
+}
+
+func (m *Manager) UnProxy(IP string, port int) {
+	m.proxyCfgs.Remove(net.JoinHostPort(IP, fmt.Sprintf("%d", port)))
+	if err := m.update(); err != nil {
+		slog.Error(err.Error())
+	}
+}
+
+func (m *Manager) update() error {
+	reload := func() error {
+		var proxyCfgs []v1.ProxyConfigurer
+		for _, cfg := range m.proxyCfgs.GetAll() {
+			proxyCfgs = append(proxyCfgs, cfg)
+		}
+
+		return m.frpc.UpdateAllConfigurer(proxyCfgs, nil)
+	}
+
+	// not started yet
+	if m.cancel == nil {
+		if m.proxyCfgs.Length() > 0 {
+			ctx, cancel := context.WithCancel(context.Background())
+			go func() {
+				if err := m.frpc.Run(ctx); err != nil {
+					cancel()
+					m.cancel = nil
+				}
+			}()
+
+			m.cancel = cancel
+			return reload()
+		}
+
 		return nil
 	}
 
-	m.mu.Lock()
-	m.logger.Printf("Stoping tunnel client")
-	if m.cancel != nil {
-		m.cancel()
+	// Already started, check if we need to restart
+	if m.proxyCfgs.Length() == 0 {
+		m.Stop()
+		return nil
 	}
 
-	m.started = false
-	m.client = nil
-	m.runCtx = nil
-	m.cancel = nil
-	m.mu.Unlock()
-
-	return nil
+	return reload()
 }
 
-func (m *Manager) Restart() error {
-	if err := m.Stop(); err != nil {
-		return err
-	}
-
-	return m.Start()
+func (m *Manager) Stop() {
+	m.frpc.Close()
+	m.cancel()
+	m.cancel = nil
 }

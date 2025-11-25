@@ -1,4 +1,4 @@
-# Tessa Daemon (tessad)
+# Tessa Supervisor (tessad)
 
 A small device-side daemon that boots a Tessa-managed device, connects it to control plane messaging, and manages secure remote access tunnels.
 
@@ -15,7 +15,7 @@ Status: active development. Some commands are placeholders and may change. See T
 - Quick install to /usr/local/bin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Fyve-Labs/tessa-daemon/main/install.sh | sudo sh
+curl -fsSL https://raw.githubusercontent.com/Fyve-Labs/tessa-supervisor/main/install.sh | sudo sh
 ```
   
 Note: The installer currently validates and installs only the linux/arm64 artifact. Other platforms must build from source.

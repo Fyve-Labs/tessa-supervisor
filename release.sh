@@ -4,7 +4,7 @@ set -euo pipefail
 # release.sh — Calculate and create the next release tag
 #
 # This script looks up the latest semantic version tag (vX.Y.Z)
-# from the upstream repo Fyve-Labs/tessa-daemon, calculates the
+# from the upstream repo Fyve-Labs/tessa-supervisor, calculates the
 # next version according to the requested bump (patch|minor|major),
 # updates the .deb install instructions in README.md to the next version,
 # then optionally tags the current repository and pushes the tag to origin.
@@ -22,7 +22,7 @@ set -euo pipefail
 #   ./release.sh major --dry-run   # show what would happen
 #
 
-UPSTREAM_REPO_URL="https://github.com/Fyve-Labs/tessa-daemon.git"
+UPSTREAM_REPO_URL="https://github.com/Fyve-Labs/tessa-supervisor.git"
 BUMP="patch"
 ASSUME_YES="false"
 NO_PUSH="false"

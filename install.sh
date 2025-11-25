@@ -7,21 +7,21 @@ set -eu
 # installs it into a directory on your PATH (default: /usr/local/bin).
 #
 # Usage (quick):
-#   curl -fsSL https://raw.githubusercontent.com/Fyve-Labs/tessa-daemon/main/install.sh | sudo sh
+#   curl -fsSL https://raw.githubusercontent.com/Fyve-Labs/tessa-supervisor/main/install.sh | sudo sh
 #
 # Specify version:
-#   curl -fsSL https://raw.githubusercontent.com/Fyve-Labs/tessa-daemon/main/install.sh \
+#   curl -fsSL https://raw.githubusercontent.com/Fyve-Labs/tessa-supervisor/main/install.sh \
 #     | sudo VERSION=v1.2.3 sh
 #
 # Environment variables:
 #   VERSION   - Tag to install (e.g., v1.2.3). If unset, installs the latest release.
 #   BIN_DIR   - Install destination (default: /usr/local/bin)
-#   REPO      - GitHub repo (owner/name). Default: Fyve-Labs/tessa-daemon
+#   REPO      - GitHub repo (owner/name). Default: Fyve-Labs/tessa-supervisor
 #   NO_SUDO   - If set (non-empty), do not attempt to use sudo.
 #   VERIFY    - If set to "0", skip checksum verification.
 #
 
-REPO="${REPO:-Fyve-Labs/tessa-daemon}"
+REPO="${REPO:-Fyve-Labs/tessa-supervisor}"
 BIN_DIR="${BIN_DIR:-/usr/local/bin}"
 VERIFY="${VERIFY:-1}"
 

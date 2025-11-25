@@ -44,11 +44,11 @@ tessad up --token <token> --device-name device-01
 
 Commonly used flags for tessad up:
 
-* -c, --config string     Path to write the config file (default: /etc/tessa/config.yaml)
+* -c, --config string     Path to write the config file (default: /etc/tessad/config.yaml)
 * -n, --device-name       Device name (required)
 * -t, --token string      Token produced by admin tessa CLI (required)
 
-* ""  --data string       Data directory for credentials (default: /var/lib/tessa)
+* ""  --data string       Data directory for credentials (default: /etc/tessad)
 * ""  --server-url string Bootstrap API URL (default: https://device-api.fyve.dev)
 * -f, --force             Overwrite existing config if present
 
@@ -62,7 +62,7 @@ What it does:
 - Start and keep it running until interrupted (Ctrl+C) or signaled:
   
 ```bash
-tessad start -c /etc/tessa/config.yaml
+tessad start -c /etc/tessad/config.yaml
 ```
 
 Behavior:
@@ -84,7 +84,7 @@ Note: Exact admin-side capabilities are governed by the internal control-plane a
 ## CLI Reference (device-side)
 
 Global:
-- -c, --config string  Path to config file (default: /etc/tessa/config.yaml)
+- -c, --config string  Path to config file (default: /etc/tessad/config.yaml)
 
 Commands:
 - tessad up       Bootstrap device using a token (writes config and credentials)
@@ -95,7 +95,7 @@ Commands:
 
 ## Configuration
 
-Default config file path: /etc/tessa/config.yaml (overridable with -c/--config).
+Default config file path: /etc/tessad/config.yaml (overridable with -c/--config).
 
 ## Environment Variables
 - TESSA_NATS_URL

@@ -21,9 +21,11 @@ var (
 )
 
 type Config struct {
-	DataDir          string
-	NatsServerConfig *NatsServerConfig
-	TunnelConfig     *TunnelConfig
+	DeviceName       string            `yaml:"deviceName"`
+	DataDir          string            `yaml:"data"`
+	NatsServerConfig *NatsServerConfig `yaml:"nats,omitempty"`
+	TunnelConfig     *TunnelConfig     `yaml:"tunnel,omitempty"`
+	TLS              *TLSConfig        `yaml:"tls"`
 }
 
 type NatsServerConfig struct {
@@ -34,6 +36,12 @@ type NatsServerConfig struct {
 	TLSCaFile   string
 	TLSKeyFile  string
 	TLSCertFile string
+}
+
+type TLSConfig struct {
+	CaFile   string `yaml:"ca"`
+	KeyFile  string `yaml:"key"`
+	CertFile string `yaml:"cert"`
 }
 
 type TunnelConfig struct {

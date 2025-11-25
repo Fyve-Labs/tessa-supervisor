@@ -1,4 +1,4 @@
-package main
+package tessad2
 
 import (
 	"fmt"

@@ -26,7 +26,10 @@ Note: The installer currently validates and installs only the linux/arm64 artifa
 ### 1) Tessa Admin — Issue bootstrap token
 
 - Use the internal admin CLI to generate a token for a device name:
-  tessa gen-token -n device-01
+
+```bash
+tessa gen-token -n device-01
+```
 
 - Keep the token secure. Share it out-of-band with the device owner.
 - Note: The tessa CLI for Tessa Admin is distributed internally and is not part of this repo.
@@ -34,7 +37,10 @@ Note: The installer currently validates and installs only the linux/arm64 artifa
 ### 2) Device Owner — Bootstrap device once
 
 - Use the token provided by the admin to bootstrap and create the device config and credentials:
-  tessad up --token <token> --device-name device-01
+  
+```bash
+tessad up --token <token> --device-name device-01
+```
 
 Commonly used flags for tessad up:
 
@@ -54,7 +60,10 @@ What it does:
 ### 3) Device Owner — Start daemon on the device
 
 - Start and keep it running until interrupted (Ctrl+C) or signaled:
-  tessad start -c /etc/tessa/config.yaml
+  
+```bash
+tessad start -c /etc/tessa/config.yaml
+```
 
 Behavior:
 - Connects to the Tessa control plane (NATS) with TLS client auth using the saved credentials.
@@ -64,7 +73,10 @@ Behavior:
 ### 4) Tessa Admin — Remote access
 
 - From the admin network, use the internal CLI to open a secure SSH session:
-  tessa ssh device-01
+
+```bash
+tessa ssh device-01
+```
 
 Note: Exact admin-side capabilities are governed by the internal control-plane and admin tooling. The daemon exposes no direct public API.
 

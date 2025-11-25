@@ -49,7 +49,7 @@ var startCmd = &cobra.Command{
 }
 
 func startServer(conf *config.Config) error {
-	nc, err := newNatsClient(conf)
+	nc, err := nats.Connect(conf.NatsUrl(), conf.NatsOptions()...)
 	if err != nil {
 		return err
 	} else {
@@ -81,10 +81,6 @@ func startServer(conf *config.Config) error {
 	tunnelManager.Stop()
 
 	return nil
-}
-
-func newNatsClient(conf *config.Config) (*nats.Conn, error) {
-	return nats.Connect(conf.NatsUrl(), conf.NatsOptions()...)
 }
 
 func init() {

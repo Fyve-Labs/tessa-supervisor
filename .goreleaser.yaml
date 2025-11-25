@@ -1,0 +1,41 @@
+version: 2
+
+project_name: tessad
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: tessad
+    main: ./main.go
+    binary: tessad
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+    flags:
+      - -trimpath
+
+archives:
+  - id: release-archives
+    formats: [ tar.gz ]
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - README.md
+      - LICENSE*  # include license if present
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  use: git
+
+release:
+  # Rely on the tag pushed (vX.Y.Z) to create the GitHub release
+  draft: false
+  prerelease: auto

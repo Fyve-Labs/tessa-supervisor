@@ -57,7 +57,7 @@ case "$TAG" in
   *) TAG="v${TAG}" ;;
 esac
 
-ASSET="wifi-provisioner_${TAG#v}_${OS}_${ARCH}.tar.gz"
+ASSET="tessad_${TAG#v}_${OS}_${ARCH}.tar.gz"
 BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
 URL_TGZ="${BASE_URL}/${ASSET}"
 URL_SUM="${BASE_URL}/checksums.txt"

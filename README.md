@@ -10,7 +10,7 @@ Status: active development. Some commands are placeholders and may change. See T
 
 ## Installation
 
-### Option A: Install prebuilt binary (Linux arm64)
+### Install prebuilt binary (Linux arm64)
 
 - Quick install to /usr/local/bin:
 

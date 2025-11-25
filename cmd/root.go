@@ -32,5 +32,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "/etc/tessa/config.yaml", "Config file")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "/etc/tessad/config.yaml", "Config file")
 }

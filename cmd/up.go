@@ -94,7 +94,7 @@ func init() {
 
 	bootstrapCmd.Flags().StringP("device-name", "n", "", "Device name")
 	bootstrapCmd.Flags().StringP("token", "t", "", "Token produced by tessa-cli: tessa gen-token -n device-name")
-	bootstrapCmd.Flags().String("data", "/var/lib/tessa", "Directory to write device certificate and key")
+	bootstrapCmd.Flags().String("data", "/etc/tessad", "Directory to write device certificate and key")
 	bootstrapCmd.Flags().String("server-url", "https://device-api.fyve.dev", "Bootstrap server URL")
 	bootstrapCmd.Flags().BoolP("force", "f", false, "Force bootstrap even if device config already exists")
 	_ = bootstrapCmd.MarkFlagRequired("device-name")

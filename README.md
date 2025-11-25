@@ -41,8 +41,9 @@ Commonly used flags for tessad up:
 * -c, --config string     Path to write the config file (default: /etc/tessa/config.yaml)
 * -n, --device-name       Device name (required)
 * -t, --token string      Token produced by admin tessa CLI (required)
-*     --data string       Data directory for credentials (default: /var/lib/tessa)
-*     --server-url string Bootstrap API URL (default: https://device-api.fyve.dev)
+
+* ""  --data string       Data directory for credentials (default: /var/lib/tessa)
+* ""  --server-url string Bootstrap API URL (default: https://device-api.fyve.dev)
 * -f, --force             Overwrite existing config if present
 
 What it does:
@@ -99,14 +100,14 @@ Default config file path: /etc/tessa/config.yaml (overridable with -c/--config).
 - Live reload during development:
   
 ```bash
-  air
+air
 ```
 
 - Run with a local config file:
 
-  ```bash
-    ./tessad start -c config.yaml
-  ```
+```bash
+./tessad start -c config.yaml
+```
 
 ## License
 - TODO: Add license information and LICENSE file.

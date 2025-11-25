@@ -99,6 +99,10 @@ func (m *Manager) update() error {
 }
 
 func (m *Manager) Stop() {
+	if m.cancel == nil {
+		return
+	}
+
 	m.frpc.Close()
 	m.cancel()
 	m.cancel = nil

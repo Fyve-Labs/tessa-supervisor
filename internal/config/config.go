@@ -2,23 +2,19 @@ package config
 
 import (
 	"errors"
-	"flag"
 	"net/url"
 	"os"
-	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/nats-io/nats.go"
+	"gopkg.in/yaml.v3"
 )
 
-const defaultDataDir = "/var/lib/tessa"
-const defaultNatsURL = "nats://52.7.199.211:4222"
+const defaultNatsURL = "tls://52.7.199.211:4222"
+const defaultTunnelAddr = "52.7.199.211"
 
-var (
-	DeviceName  = flag.String("device-name", envOr("TESSA_DEVICE_NAME", ""), "Device name")
-	dataDir     = flag.String("data-dir", envOr("TESSA_DATA_DIR", defaultDataDir), "Base data directory (credentials, etc.)")
-	natsURL     = flag.String("nats-url", envOr("NATS_URL", defaultNatsURL), "Nats server URL")
-	tlsCaFile   = flag.String("tls-ca", "", "TLS CA certificate file")
-	tlsKeyFile  = flag.String("tls-key", "", "TLS private key file")
-	tlsCertFile = flag.String("tls-cert", "", "TLS certificate file")
-)
+var DeviceName string
 
 type Config struct {
 	DeviceName       string            `yaml:"deviceName"`
@@ -51,70 +47,62 @@ type TunnelConfig struct {
 	TLSCertFile string
 }
 
-func LoadConfig() (*Config, error) {
-	flag.Parse()
-
-	if DeviceName == nil || *DeviceName == "" {
-		return nil, errors.New("device name was not set")
-	}
-
-	u, err := url.Parse(*natsURL)
+func LoadConfig(cfgFile string) (*Config, error) {
+	yamlFile, err := os.ReadFile(cfgFile)
 	if err != nil {
 		return nil, err
 	}
 
-	trySavedTLSFromDataDir()
+	var config Config
+	err = yaml.Unmarshal(yamlFile, &config)
+	if err != nil {
+		return nil, err
+	}
 
-	if *tlsCaFile == "" || *tlsKeyFile == "" || *tlsCertFile == "" {
+	if config.DeviceName == "" {
+		return nil, errors.New("device name was not set")
+	}
+
+	DeviceName = config.DeviceName
+	if config.TLS == nil {
 		return nil, errors.New("TLS credentials not found")
 	}
 
-	natsServerConfig := &NatsServerConfig{
-		URL:      u,
-		Hostname: u.Hostname(),
-		Port:     u.Port(),
+	config.TunnelConfig = &TunnelConfig{
+		ServerAddr:  config.TunnelAddr(),
+		TLSCaFile:   config.TLS.CaFile,
+		TLSKeyFile:  config.TLS.KeyFile,
+		TLSCertFile: config.TLS.CertFile,
 	}
 
-	natsServerConfig.TLSEnabled = true
-	natsServerConfig.TLSCaFile = *tlsCaFile
-	natsServerConfig.TLSKeyFile = *tlsKeyFile
-	natsServerConfig.TLSCertFile = *tlsCertFile
-
-	config := &Config{
-		DataDir:          *dataDir,
-		NatsServerConfig: natsServerConfig,
-		TunnelConfig: &TunnelConfig{
-			ServerAddr:  envOr("TESSA_TUNNEL_SERVER_ADDR", "52.7.199.211"),
-			TLSCaFile:   *tlsCaFile,
-			TLSKeyFile:  *tlsKeyFile,
-			TLSCertFile: *tlsCertFile,
-		},
-	}
-
-	return config, nil
+	return &config, nil
 }
 
-func (c *Config) NatsURL() string {
-	return c.NatsServerConfig.URL.String()
+func (c *Config) TunnelAddr() string {
+	if val := os.Getenv("TESSA_TUNNEL_SERVER_ADDR"); val != "" {
+		return val
+	}
+
+	return defaultTunnelAddr
 }
 
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+func (c *Config) NatsUrl() string {
+	if val := os.Getenv("TESSA_NATS_URL"); val != "" {
+		return val
 	}
-	return def
+
+	return defaultNatsURL
 }
 
-func trySavedTLSFromDataDir() {
-	if *tlsCaFile != "" && *tlsKeyFile != "" && *tlsCertFile != "" {
-		return
+func (c *Config) NatsOptions() []nats.Option {
+	opts := []nats.Option{
+		nats.Timeout(30 * time.Second),
 	}
 
-	credDir := filepath.Join(*dataDir, "credentials")
-
-	if file, err := os.Stat(filepath.Join(credDir, "certificate.crt")); err == nil && !file.IsDir() {
-		*tlsCaFile = filepath.Join(credDir, "root_ca.crt")
-		*tlsKeyFile = filepath.Join(credDir, "private.key")
-		*tlsCertFile = filepath.Join(credDir, "certificate.crt")
+	if strings.HasPrefix(c.NatsUrl(), "tls://") {
+		opts = append(opts, nats.RootCAs(c.TLS.CaFile))
+		opts = append(opts, nats.ClientCert(c.TLS.CertFile, c.TLS.KeyFile))
 	}
+
+	return opts
 }

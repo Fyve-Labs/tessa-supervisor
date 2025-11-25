@@ -94,7 +94,7 @@ func (cm *CommandManager) RemoveCommand(commandID string) error {
 }
 
 func (cm *CommandManager) startSubscriptions() error {
-	sub, err := cm.natsConn.Subscribe(fmt.Sprintf(NatsCommandsSubject, *config.DeviceName), func(m *nats.Msg) {
+	sub, err := cm.natsConn.Subscribe(fmt.Sprintf(NatsCommandsSubject, config.DeviceName), func(m *nats.Msg) {
 
 		var req CommandRequest
 		if err := json.Unmarshal(m.Data, &req); err != nil {

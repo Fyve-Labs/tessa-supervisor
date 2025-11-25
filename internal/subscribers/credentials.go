@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/Fyve-Labs/tessa-daemon/internal/pubsub"
-	chclient "github.com/jpillora/chisel/client"
 )
 
 // registerCredentials wires subscribers for certificate notifications.
@@ -67,7 +66,6 @@ func registerCredentials(st *starter) {
 		}
 
 		// Update the live TLS configuration in the manager (single source of truth)
-		st.tunnelMgr.SetTLS(chclient.TLSConfig{Cert: certPath, Key: keyPath, CA: caPath})
 
 		if st.credDir != "" {
 			st.logger.Printf("[tessa/things/certificates/notify] thing=%s credentials saved to %s (certificate.pem, private_key.pem, root_ca.pem) and TLS reloaded", m.IoTThingName, st.credDir)

@@ -3,6 +3,9 @@ package handler
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"fmt"
 	"io"
 	"log/slog"
@@ -21,12 +24,12 @@ import (
 
 type SSHServerConfig struct {
 	UserPublicKey  string `json:"ca_public_key"`
-	HostPrivateKey string `json:"host_private_key"`
+	HostPrivateKey string `json:"host_private_key,omitempty"`
 }
 
 type SSHServerHandler struct {
-	UserPublicKey  gossh.PublicKey
-	HostPrivateKey gossh.Signer
+	TrustedUserPublicKey gossh.PublicKey
+	HostPrivateKey       gossh.Signer
 
 	listener net.Listener
 	server   *ssh.Server
@@ -42,9 +45,13 @@ func NewSSHServerHandler(payload interface{}) (*SSHServerHandler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse CA public key: %w", err)
 	}
-	private, err := gossh.ParsePrivateKey([]byte(req.HostPrivateKey))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse host private key: %w", err)
+
+	var private gossh.Signer
+	if req.HostPrivateKey != "" {
+		private, err = gossh.ParsePrivateKey([]byte(req.HostPrivateKey))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse host private key: %w", err)
+		}
 	}
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -53,9 +60,9 @@ func NewSSHServerHandler(payload interface{}) (*SSHServerHandler, error) {
 	}
 
 	return &SSHServerHandler{
-		UserPublicKey:  caPublicKey,
-		HostPrivateKey: private,
-		listener:       ln,
+		TrustedUserPublicKey: caPublicKey,
+		HostPrivateKey:       private,
+		listener:             ln,
 	}, nil
 }
 
@@ -70,11 +77,22 @@ func (h *SSHServerHandler) Handle(ctx context.Context) error {
 	config := &gossh.ServerConfig{
 		ServerVersion: fmt.Sprintf("SSH-2.0-%s_%s", "Tessa", "TODO: version"),
 	}
-	config.AddHostKey(h.HostPrivateKey)
+
+	// Setup host keys. Only accept ECDSA keys
+	if h.HostPrivateKey != nil {
+		config.AddHostKey(h.HostPrivateKey)
+	}
+
+	private, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return err
+	}
+	signer, _ := gossh.NewSignerFromKey(private)
+	config.AddHostKey(signer)
 
 	certChecker := &UserCertChecker{
 		IsUserAuthority: func(auth gossh.PublicKey) bool {
-			return bytes.Equal(auth.Marshal(), h.UserPublicKey.Marshal())
+			return bytes.Equal(auth.Marshal(), h.TrustedUserPublicKey.Marshal())
 		},
 		certChecker: gossh.CertChecker{},
 	}

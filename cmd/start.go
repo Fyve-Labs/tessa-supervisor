@@ -30,15 +30,22 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		conf, err := config.LoadConfig(cfgFile)
 		if err != nil {
-			slog.Error(fmt.Sprintf("loading config: %v. Waiting for device re-bootstrapping", err))
-			for {
-				time.Sleep(30 * time.Second)
-				conf, err = config.LoadConfig(cfgFile)
-				if err == nil {
-					break
+			slog.Error(fmt.Sprintf("loading config: %v", err))
+			conf, err = tryFirstBootstrap(cmd)
+			if err != nil {
+				slog.Error("Waiting for device re-bootstrapping")
+				for {
+					time.Sleep(30 * time.Second)
+					conf, err = config.LoadConfig(cfgFile)
+					if err == nil {
+						break
+					}
+					slog.Warn(fmt.Sprintf("config still not ready: %v. Retrying...", err))
 				}
-				slog.Warn(fmt.Sprintf("config still not ready: %v. Retrying...", err))
 			}
+
+			// reload config after bootstrap
+			conf, _ = config.LoadConfig(cfgFile)
 		}
 
 		if err := startServer(conf); err != nil {
@@ -46,6 +53,28 @@ var startCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+}
+
+// tryFirstBootstrap Looks for bootstrap token placed in data_dir/token by the installation script
+func tryFirstBootstrap(cmd *cobra.Command) (*config.Config, error) {
+	deviceName, dataDir, serverUrl := getBootstrapOpts(cmd)
+	if _, err := os.Stat(dataDir + "/token"); err != nil {
+		return nil, err
+	}
+
+	slog.Info("Found bootstrap token. Trying to bootstrap device...")
+	token, err := os.ReadFile(dataDir + "/token")
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := bootstrap(deviceName, string(token), dataDir, serverUrl)
+	if err != nil {
+		slog.Error(fmt.Sprintf("bootstrap: %v", err))
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
 func startServer(conf *config.Config) error {
@@ -85,4 +114,6 @@ func startServer(conf *config.Config) error {
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+
+	applyBootstrapOpts(startCmd)
 }

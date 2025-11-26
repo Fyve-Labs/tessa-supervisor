@@ -58,12 +58,14 @@ var startCmd = &cobra.Command{
 // tryFirstBootstrap Looks for bootstrap token placed in data_dir/token by the installation script
 func tryFirstBootstrap(cmd *cobra.Command) (*config.Config, error) {
 	deviceName, dataDir, serverUrl := getBootstrapOpts(cmd)
-	if _, err := os.Stat(dataDir + "/token"); err != nil {
+	tokenFile := dataDir + "/token"
+
+	if _, err := os.Stat(tokenFile); err != nil {
 		return nil, err
 	}
 
 	slog.Info("Found bootstrap token. Trying to bootstrap device...")
-	token, err := os.ReadFile(dataDir + "/token")
+	token, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +75,8 @@ func tryFirstBootstrap(cmd *cobra.Command) (*config.Config, error) {
 		slog.Error(fmt.Sprintf("bootstrap: %v", err))
 		return nil, err
 	}
+
+	_ = os.Remove(tokenFile)
 
 	return cfg, nil
 }

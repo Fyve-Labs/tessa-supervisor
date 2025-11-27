@@ -14,10 +14,12 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
+      - darwin
     goarch:
       - arm64
     ldflags:
-      - -s -w
+      - -s -w --X github.com/Fyve-Labs/tessa-daemon/cmd.VERSION={{.Version}} -X github.com/Fyve-Labs/tessa-daemon/cmd.COMMIT={{.Commit}} -X github.com/Fyve-Labs/tessa-daemon/cmd.BUILDDATE={{.Date}}
+      - -extldflags "-static"
     flags:
       - -trimpath
 

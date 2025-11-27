@@ -7,9 +7,9 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tessad"
-  cmd = "go build -o ./tessad ."
+  cmd = "go build -ldflags \"-s -w --X github.com/Fyve-Labs/tessa-daemon/cmd.VERSION=0.0.1\" -o ./tessad ."
   delay = 1000
-  exclude_dir = ["scripts", "tmp", "vendor", "testdata"]
+  exclude_dir = ["scripts", "tmp", "dist", "testdata"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = false

@@ -6,10 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//Notes: ALWAYS Retrieve Values from Viper
-//This is the most critical step. Inside your command’s Run or RunE function, you must always retrieve configuration values using the Viper getter methods (e.g., viper.GetString("my-flag"), viper.GetBool("some-toggle")).
-//
-//Do not read from the original variable tied to the flag. The Viper instance is the single source of truth that has already resolved the final value based on its precedence rules (flag > env > config > default)
+var (
+	VERSION   = "0.0.0"
+	COMMIT    = "development"
+	BUILDDATE = "unknown"
+)
 
 var cfgFile string
 
